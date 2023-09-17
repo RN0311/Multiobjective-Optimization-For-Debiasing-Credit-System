@@ -11,7 +11,7 @@
 
 > This repository contains the implementation of our paper titled as &#34;Fairness-Aware Multi-Objective Optimization for Debiasing Credit System&#34;
 
-## Install the requirements
+## Install the packages
 
 ```sh
 pip install -r requirements.txt
