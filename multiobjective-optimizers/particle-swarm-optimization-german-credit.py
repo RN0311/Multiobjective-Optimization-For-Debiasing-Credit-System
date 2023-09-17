@@ -21,6 +21,22 @@ def compute_statistical_parity(xgboost_y_pred, X_test):
 
   return statistical_parity_difference
 
+def compute_counterfactual_fairness(xgboost_model, X_test):
+    original_predictions = xgboost_model.predict(X_test)
+    
+    # Create counterfactual instances by flipping the sensitive attribute
+    counterfactual_X_test = X_test.copy()
+    counterfactual_X_test['statussex_A92'] = 1 - counterfactual_X_test['statussex_A92']
+
+    # Predict probabilities for original and counterfactual instances
+    original_probabilities = xgboost_model.predict_proba(X_test)[:, 1]
+    counterfactual_probabilities = xgboost_model.predict_proba(counterfactual_X_test)[:, 1]
+
+    # Calculate counterfactual fairness metrics for original instances
+    counterfactual_fairness_original = np.abs(original_probabilities - counterfactual_probabilities)
+
+    return counterfactual_fairness_original
+
 # Load the data
 data = pd.read_csv('https://archive.ics.uci.edu/ml/machine-learning-databases/statlog/german/german.data',
                    header=None, sep=' ')
@@ -80,8 +96,10 @@ def objective_function(self):
     fpr = fp / (fp + tn)
 
     individual_fairness = compute_statistical_parity(y_pred, X_test)
+    counterfactual_fairness_original = compute_counterfactual_fairness(model, X_test)
     print(accuracy*100, "%")
-    print(individual_fairness)
+    print("Statistical Parity (Individual Fairness):", individual_fairness)
+    print("Counterfactual Fairness (Individual Fairness):", np.mean(counterfactual_fairness_original))
 
     return [accuracy, individual_fairness]
 
@@ -97,4 +115,5 @@ dimensions = len(min_bound)
 optimizer = ps.single.GlobalBestPSO(n_particles=num_particles, dimensions=dimensions, options=options, bounds=bounds)
 
 cost, pos = optimizer.optimize(objective_function, iters=10)
-
+print("cost ", cost)
+print("pos ", pos)
