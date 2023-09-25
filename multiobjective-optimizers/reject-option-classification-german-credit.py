@@ -32,17 +32,14 @@ sensitive_features = ['statussex', 'age']
 X = df.drop([target_col], axis=1)
 y = df[target_col]
 
-# Split the data into training and test sets
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# Applied SMOTE-Tomek to balance the training data
 smote_tomek = SMOTETomek(random_state=42)
 X_train_balanced, y_train_balanced = smote_tomek.fit_resample(X_train, y_train)
 
-# Generate counterfactual instances
 counterfactual_X_test = X_test.copy()
 
-# Flip the sensitive attribute for females ('statussex_A92')
+# Flipped the sensitive attribute for females ('statussex_A92')
 counterfactual_X_test['statussex_A92'] = 1 - counterfactual_X_test['statussex_A92']
 
 params = {
@@ -55,7 +52,6 @@ params = {
     'seed': 42
 }
 
-# Train the XGBoost model
 xgb = XGBClassifier(**params)
 xgb.fit(X_train_balanced, y_train_balanced)
 
@@ -63,14 +59,12 @@ y_prob = xgb.predict_proba(X_test)[:, 1]
 
 alpha = 0.65
 
-# Sort the probabilities to find the rejection threshold
 y_prob_sorted = np.sort(y_prob)
 reject_threshold = y_prob_sorted[int(alpha * len(y_prob))]
 
 accepted_mask = (y_prob >= reject_threshold)
 rejected_mask = (y_prob < reject_threshold)
 
-# Calculated accuracy for accepted and rejected instances
 accuracy_accepted = accuracy_score(y_test[accepted_mask], xgb.predict(X_test[accepted_mask]))
 accuracy_rejected = accuracy_score(y_test[rejected_mask], xgb.predict(X_test[rejected_mask]))
 
@@ -86,19 +80,15 @@ print('Group Fairness on Accepted Instances (Statistical Parity): {:.4f}'.format
 print('Group Fairness on Rejected Instances (Statistical Parity): {:.4f}'.format(group_fairness_accepted))
 
 
-# Predict probabilities for the original and counterfactual instances
 y_prob_counterfactual = xgb.predict_proba(counterfactual_X_test)[:, 1]
 
-# Calculate counterfactual fairness metrics for original instances
 counterfactual_fairness_original = np.abs(y_prob - y_prob_counterfactual)
 
 alpha = 0.65
 
-# Sorted the counterfactual fairness values for original instances
 counterfactual_fairness_sorted = np.sort(counterfactual_fairness_original)
 reject_threshold = counterfactual_fairness_sorted[int(alpha * len(counterfactual_fairness_original))]
 
-# Created masks for accepted and rejected instances based on original fairness
 accepted_mask = (counterfactual_fairness_original >= reject_threshold)
 rejected_mask = (counterfactual_fairness_original < reject_threshold)
 
@@ -108,9 +98,6 @@ counterfactual_fairness_rejected = counterfactual_fairness_original[rejected_mas
 
 accuracy_accepted = accuracy_score(y_test[accepted_mask], xgb.predict(X_test[accepted_mask]))
 accuracy_rejected = accuracy_score(y_test[rejected_mask], xgb.predict(X_test[rejected_mask]))
-
-#print('Accuracy on Accepted Instances: {:.4f}'.format(accuracy_accepted))
-#print('Accuracy on Rejected Instances: {:.4f}'.format(accuracy_rejected))
 
 print('Individual Fairness on Accepted Instances (Counterfactual Fairness): {:.4f}'.format(counterfactual_fairness_accepted.mean()))
 print('Individual Fairness on Rejected Instances (Counterfactual Fairness): {:.4f}'.format(counterfactual_fairness_rejected.mean()))
