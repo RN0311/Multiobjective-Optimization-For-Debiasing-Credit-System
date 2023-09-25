@@ -24,7 +24,6 @@ def compute_statistical_parity(xgboost_y_pred, X_test):
 def compute_counterfactual_fairness(xgboost_model, X_test):
     original_predictions = xgboost_model.predict(X_test)
     
-    # Create counterfactual instances by flipping the sensitive attribute
     counterfactual_X_test = X_test.copy()
     counterfactual_X_test['statussex_A92'] = 1 - counterfactual_X_test['statussex_A92']
 
@@ -37,43 +36,36 @@ def compute_counterfactual_fairness(xgboost_model, X_test):
 
     return counterfactual_fairness_original
 
-# Load the data
 data = pd.read_csv('https://archive.ics.uci.edu/ml/machine-learning-databases/statlog/german/german.data',
                    header=None, sep=' ')
 
-# Define feature names
 feature_names = ['status', 'duration', 'credit_history', 'purpose', 'amount',
                  'savings', 'employment_duration', 'installment_rate', 'statussex',
                  'other_debtors', 'residence_since', 'property', 'age', 'other_installment_plans',
                  'housing', 'number_credits', 'job', 'people_liable', 'telephone', 'foreign_worker',
                  'credit_risk']
 
-# Assign the feature names to the dataset
+
 data.columns = feature_names
 
-# Converted categorical variables to numerical using one-hot encoding
 categorical_cols = ['status', 'credit_history', 'purpose', 'savings', 'employment_duration',
                     'statussex', 'other_debtors', 'property', 'other_installment_plans',
                     'housing', 'job', 'telephone', 'foreign_worker']
 data = pd.get_dummies(data, columns=categorical_cols)
 data.credit_risk.replace([1,2], [1,0], inplace=True)
 
-# Defined the target variable and the features
 target_col = 'credit_risk'
 features = data.drop(target_col, axis=1)
 target = data[target_col]
 
-# Split the data into train and test sets
 X_train, X_test, y_train, y_test = train_test_split(features, target, test_size=0.2, random_state=42)
 
 smote_tomek = SMOTETomek(random_state=42)
 X_train_balanced, y_train_balanced = smote_tomek.fit_resample(X_train, y_train)
 
-#sensitive features
 sensitive_features = ['statussex_A91', 'statussex_A92', 'statussex_A93', 'statussex_A94', 'age']
 
 
-# Defined the XGBoost model
 params = {
     'objective': 'binary:logistic',
     'eval_metric': 'auc',
