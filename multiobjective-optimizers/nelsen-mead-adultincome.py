@@ -117,3 +117,21 @@ statistical_parity = np.mean(privileged) - np.mean(unprivileged)
 
 print(f"Final Accuracy: {accuracy}")
 print(f"Final Statistical Parity: {statistical_parity}")
+
+def compute_counterfactual_fairness(xgboost_model, X_test):
+    original_predictions = xgboost_model.predict(X_test)
+
+    counterfactual_X_test = X_test.copy()
+    counterfactual_X_test['sex_Male'] = 1 - counterfactual_X_test['sex_Male']
+
+    original_probabilities = xgboost_model.predict_proba(X_test)[:, 1]
+    counterfactual_probabilities = xgboost_model.predict_proba(counterfactual_X_test)[:, 1]
+
+    counterfactual_fairness_original = np.abs(original_probabilities - counterfactual_probabilities)
+
+    return counterfactual_fairness_original
+counterfactual_fairness_original = compute_counterfactual_fairness(model, X_test)
+
+print("Best Accuracy: {:.2f}%".format(accuracy * 100))
+print("Best Statistical Parity (Group Fairness):", individual_fairness)
+print("Best Counterfactual Fairness (Individual Fairness):", np.mean(counterfactual_fairness_original))
