@@ -4,3 +4,4 @@ numpy
 pandas
 hyperopt
 imblearn
+scipy
